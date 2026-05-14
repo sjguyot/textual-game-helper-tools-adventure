@@ -17,6 +17,10 @@ No build step is required.
 1. Download or clone this repository.
 2. Open `index.html` in your browser.
 
+## GitHub Pages
+
+Live demo: https://sjguyot.github.io/textual-game-helper-tools-adventure/
+
 ## Usage
 
 - Click "Add node" to create a new node.
