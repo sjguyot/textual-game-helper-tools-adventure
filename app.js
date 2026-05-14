@@ -5,6 +5,9 @@ const deleteNodeBtn = document.getElementById("delete-node");
 const exportBtn = document.getElementById("export-yaml");
 const importInput = document.getElementById("import-yaml");
 const validateBtn = document.getElementById("validate");
+const zoomInBtn = document.getElementById("zoom-in");
+const zoomOutBtn = document.getElementById("zoom-out");
+const zoomLevel = document.getElementById("zoom-level");
 
 const storyTitle = document.getElementById("story-title");
 const statEndurance = document.getElementById("stat-endurance");
@@ -18,6 +21,14 @@ const choicesList = document.getElementById("choices-list");
 const addChoiceBtn = document.getElementById("add-choice");
 const validationOutput = document.getElementById("validation");
 
+const BOARD_BASE_WIDTH = 1600;
+const BOARD_BASE_HEIGHT = 1200;
+const NODE_BASE_WIDTH = 220;
+const LINK_OFFSET_Y = 30;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.1;
+
 const state = {
   title: "New Adventure",
   window: { width: 900, height: 600 },
@@ -26,6 +37,7 @@ const state = {
   flags: {},
   start: 1,
   nodes: new Map(),
+  zoom: 1,
 };
 
 let selectedNodeId = null;
@@ -206,14 +218,20 @@ function renderChoices(node) {
 function renderNodes() {
   board.querySelectorAll(".node").forEach((el) => el.remove());
 
+  board.style.width = `${BOARD_BASE_WIDTH * state.zoom}px`;
+  board.style.height = `${BOARD_BASE_HEIGHT * state.zoom}px`;
+  zoomLevel.textContent = `${Math.round(state.zoom * 100)}%`;
+
   state.nodes.forEach((node) => {
     const el = document.createElement("div");
     el.className = "node";
     if (node.id === selectedNodeId) {
       el.classList.add("selected");
     }
-    el.style.left = `${node.x}px`;
-    el.style.top = `${node.y}px`;
+    el.style.left = `${node.x * state.zoom}px`;
+    el.style.top = `${node.y * state.zoom}px`;
+    el.style.transform = `scale(${state.zoom})`;
+    el.style.transformOrigin = "top left";
 
     const idEl = document.createElement("div");
     idEl.className = "node-id";
@@ -245,10 +263,10 @@ function renderNodes() {
       }
       const dx = event.clientX - dragState.startX;
       const dy = event.clientY - dragState.startY;
-      node.x = dragState.originX + dx;
-      node.y = dragState.originY + dy;
-      el.style.left = `${node.x}px`;
-      el.style.top = `${node.y}px`;
+      node.x = dragState.originX + dx / state.zoom;
+      node.y = dragState.originY + dy / state.zoom;
+      el.style.left = `${node.x * state.zoom}px`;
+      el.style.top = `${node.y * state.zoom}px`;
       if (selectedNodeId === node.id) {
         nodeTextInput.value = node.text;
       }
@@ -273,10 +291,10 @@ function renderLinks() {
         return;
       }
       const target = state.nodes.get(choice.goto);
-      const x1 = node.x + 220;
-      const y1 = node.y + 30;
-      const x2 = target.x;
-      const y2 = target.y + 30;
+      const x1 = node.x * state.zoom + NODE_BASE_WIDTH * state.zoom;
+      const y1 = node.y * state.zoom + LINK_OFFSET_Y * state.zoom;
+      const x2 = target.x * state.zoom;
+      const y2 = target.y * state.zoom + LINK_OFFSET_Y * state.zoom;
 
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", x1);
@@ -528,6 +546,16 @@ importInput.addEventListener("change", (event) => {
 });
 
 validateBtn.addEventListener("click", validate);
+
+zoomInBtn.addEventListener("click", () => {
+  state.zoom = Math.min(ZOOM_MAX, Math.round((state.zoom + ZOOM_STEP) * 10) / 10);
+  renderNodes();
+});
+
+zoomOutBtn.addEventListener("click", () => {
+  state.zoom = Math.max(ZOOM_MIN, Math.round((state.zoom - ZOOM_STEP) * 10) / 10);
+  renderNodes();
+});
 
 createNode(1, 80, 60);
 selectNode(1);
