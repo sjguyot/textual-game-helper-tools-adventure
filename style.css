@@ -72,7 +72,7 @@ body {
 .board-wrapper {
   position: relative;
   overflow: auto;
-  padding: 20px;
+  padding: var(--board-padding, 20px);
 }
 
 .board {
@@ -82,6 +82,13 @@ body {
   background: #f7f2e7;
   border: 2px dashed #c4b48f;
   user-select: none;
+}
+
+.board-content {
+  position: relative;
+  width: 1600px;
+  height: 1200px;
+  transform-origin: top left;
 }
 
 .links {

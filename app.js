@@ -1,4 +1,5 @@
 const board = document.getElementById("board");
+const boardContent = document.getElementById("board-content");
 const links = document.getElementById("links");
 const addNodeBtn = document.getElementById("add-node");
 const deleteNodeBtn = document.getElementById("delete-node");
@@ -216,10 +217,13 @@ function renderChoices(node) {
 }
 
 function renderNodes() {
-  board.querySelectorAll(".node").forEach((el) => el.remove());
+  boardContent.querySelectorAll(".node").forEach((el) => el.remove());
 
-  board.style.width = `${BOARD_BASE_WIDTH * state.zoom}px`;
-  board.style.height = `${BOARD_BASE_HEIGHT * state.zoom}px`;
+  board.style.width = `${BOARD_BASE_WIDTH}px`;
+  board.style.height = `${BOARD_BASE_HEIGHT / state.zoom}px`;
+  boardContent.style.transform = `scale(${state.zoom})`;
+  boardContent.style.width = `${BOARD_BASE_WIDTH}px`;
+  boardContent.style.height = `${BOARD_BASE_HEIGHT}px`;
   zoomLevel.textContent = `${Math.round(state.zoom * 100)}%`;
 
   state.nodes.forEach((node) => {
@@ -228,10 +232,8 @@ function renderNodes() {
     if (node.id === selectedNodeId) {
       el.classList.add("selected");
     }
-    el.style.left = `${node.x * state.zoom}px`;
-    el.style.top = `${node.y * state.zoom}px`;
-    el.style.transform = `scale(${state.zoom})`;
-    el.style.transformOrigin = "top left";
+    el.style.left = `${node.x}px`;
+    el.style.top = `${node.y}px`;
 
     const idEl = document.createElement("div");
     idEl.className = "node-id";
@@ -265,8 +267,8 @@ function renderNodes() {
       const dy = event.clientY - dragState.startY;
       node.x = dragState.originX + dx / state.zoom;
       node.y = dragState.originY + dy / state.zoom;
-      el.style.left = `${node.x * state.zoom}px`;
-      el.style.top = `${node.y * state.zoom}px`;
+      el.style.left = `${node.x}px`;
+      el.style.top = `${node.y}px`;
       if (selectedNodeId === node.id) {
         nodeTextInput.value = node.text;
       }
@@ -277,7 +279,7 @@ function renderNodes() {
       dragState = null;
     });
 
-    board.appendChild(el);
+    boardContent.appendChild(el);
   });
 
   renderLinks();
@@ -291,10 +293,10 @@ function renderLinks() {
         return;
       }
       const target = state.nodes.get(choice.goto);
-      const x1 = node.x * state.zoom + NODE_BASE_WIDTH * state.zoom;
-      const y1 = node.y * state.zoom + LINK_OFFSET_Y * state.zoom;
-      const x2 = target.x * state.zoom;
-      const y2 = target.y * state.zoom + LINK_OFFSET_Y * state.zoom;
+      const x1 = node.x + NODE_BASE_WIDTH;
+      const y1 = node.y + LINK_OFFSET_Y;
+      const x2 = target.x;
+      const y2 = target.y + LINK_OFFSET_Y;
 
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", x1);
@@ -369,6 +371,28 @@ function validate() {
     });
   });
   validationOutput.textContent = errors.length ? errors.join("\n") : "No errors.";
+}
+
+function setZoom(nextZoom) {
+  state.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, nextZoom));
+  state.zoom = Math.round(state.zoom * 10) / 10;
+  renderNodes();
+}
+
+function zoomIn() {
+  setZoom(state.zoom + ZOOM_STEP);
+}
+
+function zoomOut() {
+  setZoom(state.zoom - ZOOM_STEP);
+}
+
+function shouldIgnoreShortcutTarget(target) {
+  if (!target) {
+    return false;
+  }
+  const tag = target.tagName ? target.tagName.toLowerCase() : "";
+  return tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable;
 }
 
 function importYaml(file) {
@@ -547,14 +571,33 @@ importInput.addEventListener("change", (event) => {
 
 validateBtn.addEventListener("click", validate);
 
-zoomInBtn.addEventListener("click", () => {
-  state.zoom = Math.min(ZOOM_MAX, Math.round((state.zoom + ZOOM_STEP) * 10) / 10);
-  renderNodes();
-});
+zoomInBtn.addEventListener("click", zoomIn);
+zoomOutBtn.addEventListener("click", zoomOut);
 
-zoomOutBtn.addEventListener("click", () => {
-  state.zoom = Math.max(ZOOM_MIN, Math.round((state.zoom - ZOOM_STEP) * 10) / 10);
-  renderNodes();
+document.addEventListener("keydown", (event) => {
+  if (shouldIgnoreShortcutTarget(event.target)) {
+    return;
+  }
+  if (!(event.ctrlKey || event.metaKey)) {
+    return;
+  }
+
+  if (event.key === "+" || event.key === "=") {
+    event.preventDefault();
+    zoomIn();
+    return;
+  }
+
+  if (event.key === "-") {
+    event.preventDefault();
+    zoomOut();
+    return;
+  }
+
+  if (event.key === "0") {
+    event.preventDefault();
+    setZoom(1);
+  }
 });
 
 createNode(1, 80, 60);
